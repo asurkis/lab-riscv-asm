@@ -31,10 +31,21 @@ struct Size2 {
    (последнее -- 2 операции в C и в RISC-V) */
 struct Size2 find_index2(int val, int *arr, size_t n, size_t m) {
   size_t index = find_index(val, arr, n * m);
-  struct Size2 result;
-  result.j = index % n;
-  result.i = index / n;
+  struct Size2 r;
+  r.i = index / n;
+  r.j = index % n;
+  return r;
 };
+
+/* Поиск двух индексов без операций умножения/деления */
+struct Size2 find_index2_nodiv(int val, int *arr, size_t n, size_t m) {
+  struct Size2 r;
+  for (r.i = 0; r.i < m; ++r.i)
+    for (r.j = 0; r.j < n; ++r.j)
+      if (*arr++ == val)
+        return r;
+  return r;
+}
 
 #define N 3
 #define M 6
@@ -42,9 +53,11 @@ struct Size2 find_index2(int val, int *arr, size_t n, size_t m) {
 int main() {
   int arr[N * M];
   for (size_t i = 0; i < M; ++i)
-  for (size_t j = 0; j < N; ++j)
-    arr[i * N + j] = 256 * i + j;
-  struct Size2 pos = find_index2(0x0502, arr, N, M);
-  printf("%d %d\n", pos.i, pos.j);
+    for (size_t j = 0; j < N; ++j)
+      arr[i * N + j] = 256 * i + j;
+  size_t pos = find_index(0x0502, arr, N * M);
+  struct Size2 pos2 = find_index2(0x0502, arr, N, M);
+  struct Size2 pos2_nodiv = find_index2_nodiv(0x0502, arr, N, M);
+  printf("%d = (%d; %d) = (%d; %d)\n", pos, pos2.i, pos2.j, pos2_nodiv.i, pos2_nodiv.j);
   return 0;
 }
