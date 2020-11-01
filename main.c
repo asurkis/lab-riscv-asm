@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 
 /* Т.к. C не позволяет легко положить массив прямо
@@ -58,6 +57,5 @@ int main() {
   size_t pos = find_index(0x0502, arr, N * M);
   struct Size2 pos2 = find_index2(0x0502, arr, N, M);
   struct Size2 pos2_nodiv = find_index2_nodiv(0x0502, arr, N, M);
-  printf("%d = (%d; %d) = (%d; %d)\n", pos, pos2.i, pos2.j, pos2_nodiv.i, pos2_nodiv.j);
   return 0;
 }
