@@ -23,74 +23,88 @@ main_loop_t0: # внутренний цикл по строкам с конца
     addi t1 t1 -1
     bge t1 x0 main_loop_t1
 
-    # число, которое ищем
-    li a0 0x0502
-    # сам массив расположен на стеке
-    # но указатель стека смещается при вызове функции
-    mv a1 sp
-    # размеры массива
-    mv a2 s0
-    mv a3 s1
+    addi sp sp -12
+    li t0 0x0502
+    sw t0 0(sp) # число, которое ищем
+    sw s0 4(sp) # размер строки
+    sw s1 8(sp) # размер столбца
     call find_index2
     nop # для остановки в отладчике и проверки, что мы нашли индекс
 
     # то же самое, но без инструкций умножения/деления
-    li a0 0x0502
-    mv a1 sp
-    mv a2 s0
-    mv a3 s1
+    li t0 0x0502
+    sw t0 0(sp)
+    sw s0 4(sp)
+    sw s1 8(sp)
     call find_index2_nodiv
     nop # для остановки в отладчике и проверки, что мы нашли индекс
+    addi sp sp 84 # (3 + 3 * 6) * 4 -- размер данных, которые мы поместили на стек, всего
 
 find_index:
-    # в a1 -- адрес начала массива
+    # Искомый элемент
+    lw t3 0(sp)
+    # Длина массива
+    lw t4 4(sp)
+    # Указатель на первый элемент массива (расположенный в стеке)
+    addi t2 sp 8
     li t0 0
-find_index_loop_t0:
-    lw t1 0(a1) # выбор элемента
-    beq a0 t1 find_index_return # нашли -- возвращаем
-    addi a1 a1 4 # переход к следующему элементу
+find_index_loop_t0: # цикл по массиву
+    lw t1 0(t2) # выбор элемента
+    beq t3 t1 find_index_return # нашли -- возвращаем
+    addi t2 t2 4 # переход к следующему элементу
     addi t0 t0 1
-    ble t0 a2 find_index_loop_t0
-find_index_return: # возврат результата
+    ble t0 t4 find_index_loop_t0
+find_index_return: # возврат из функции
     mv a0 t0
     ret
 
 find_index2:
+    lw t0 0(sp) # искомый элемент
+    lw t1 4(sp) # размер строки
+    lw t2 8(sp) # размер столбца
     # сохраним размер строки и адрес возврата в стек
-    addi sp sp -8
-    sw a2 0(sp)
-    sw ra 4(sp)
+    sw t1 0(sp)
+    sw ra -4(sp)
+    # аргументы поиска индекса --
+    # искомый элемент и размер массива
+    addi sp sp 4
+    sw t0 0(sp)
+    mul t1 t1 t2
+    sw t1 4(sp)
     # найдем индекс в одномерном массиве
-    mul a2 a2 a3
     call find_index
     # восстанавливаем адрес возврата и размер строки
-    lw a2 0(sp)
-    lw ra 4(sp)
-    addi sp sp 8
+    addi sp sp -4
+    lw ra -4(sp)
+    lw t0 0(sp)
     # в a0 -- одномерный индекс
     # его нужно преобразовать к двумерному
-    divu a1 a0 a2
-    remu a0 a0 a2
+    remu a1 a0 t0 # номер столбца
+    divu a0 a0 t0 # номер строки
     ret
 
 find_index2_nodiv:
     # поиск без деления через смещение указателя
+    lw t3 0(sp) # искомый элемент
+    lw t4 4(sp) # размер строки
+    lw t5 8(sp) # размер столбца
+    addi t6 sp 12 # итератор по массиву
     li t1 0
 find_index2_nodiv_loop_t1: # внешний цикл по столбцам с начала
     li t0 0
 find_index2_nodiv_loop_t0: # внутренний цикл по строкам с начала
-    lw t2 0(a1) # выбор элемента
-    beq t2 a0 find_index2_nodiv_return # нашли -- возвращаем
-    addi a1 a1 4 # переход к следующему элементу
+    lw t2 0(t6) # выбор элемента
+    beq t2 t3 find_index2_nodiv_return # нашли -- возвращаем
+    addi t6 t6 4 # переход к следующему элементу
 
     # конец цикла по t0
     addi t0 t0 1
-    bne t0 a2 find_index2_nodiv_loop_t0
+    bne t0 t4 find_index2_nodiv_loop_t0
 
     # конец цикла по t1
     addi t1 t1 1
-    bne t1 a3 find_index2_nodiv_loop_t1
+    bne t1 t5 find_index2_nodiv_loop_t1
 find_index2_nodiv_return:
-    mv a0 t1
-    mv a1 t0
+    mv a1 t0 # номер столбца
+    mv a0 t1 # номер строки
     ret
